@@ -1,5 +1,8 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using ContextMenuManager.Services;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
 
 namespace ContextMenuManager.Models;
 
@@ -17,6 +20,7 @@ public sealed class MenuEntry : INotifyPropertyChanged
     public required string Scopes { get; init; }
     public string? Clsid { get; init; }
     public List<VerbLocation> Locations { get; init; } = new();
+    public IconSpec Icon { get; init; } = IconSpec.None;
     public string Glyph => Kind switch
     {
         EntryKind.Packaged => "\uE7B8",      // package
@@ -41,6 +45,31 @@ public sealed class MenuEntry : INotifyPropertyChanged
         get => _isEnabled;
         set { if (_isEnabled != value) { _isEnabled = value; OnChanged(); OnChanged(nameof(StatusText)); } }
     }
+
+    private ImageSource? _iconImage;
+    public ImageSource? IconImage
+    {
+        get => _iconImage;
+        private set
+        {
+            _iconImage = value;
+            OnChanged();
+            OnChanged(nameof(IconVisibility));
+            OnChanged(nameof(GlyphVisibility));
+        }
+    }
+
+    private double _iconDip = 20;
+    public double IconDip
+    {
+        get => _iconDip;
+        set { if (Math.Abs(_iconDip - value) > 0.01) { _iconDip = value; OnChanged(); } }
+    }
+
+    public Visibility IconVisibility => IconImage is null ? Visibility.Collapsed : Visibility.Visible;
+    public Visibility GlyphVisibility => IconImage is null ? Visibility.Visible : Visibility.Collapsed;
+
+    public void SetIconImage(ImageSource? source) => IconImage = source;
 
     public override string ToString() => Name;
 

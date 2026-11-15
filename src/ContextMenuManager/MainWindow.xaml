@@ -12,6 +12,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -44,8 +45,30 @@
             </Button>
         </Grid>
 
+        <Border x:Name="UpdateBar" Grid.Row="1" Visibility="Collapsed" Padding="16,12" CornerRadius="8"
+                Background="{ThemeResource SystemFillColorAttentionBackgroundBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                    <TextBlock Text="An update is available." Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
+                    <TextBlock x:Name="UpdateBarMessage" TextWrapping="Wrap"
+                               Style="{StaticResource CaptionTextBlockStyle}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button x:Name="UpdateNowButton" Content="Update" Click="OnUpdateNow"
+                            AutomationProperties.Name="Update" />
+                    <Button x:Name="UpdateLaterButton" Content="Later" Click="OnUpdateLater"
+                            AutomationProperties.Name="Later" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <!-- Classic menu toggle -->
-        <Grid Grid.Row="1" Padding="16,12" ColumnSpacing="16" CornerRadius="8"
+        <Grid Grid.Row="2" Padding="16,12" ColumnSpacing="16" CornerRadius="8"
               Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
               BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
             <Grid.ColumnDefinitions>
@@ -61,17 +84,17 @@
                           AutomationProperties.Name="Use the classic right-click menu" Toggled="OnClassicToggled" />
         </Grid>
 
-        <InfoBar x:Name="ApplyBar" Grid.Row="2" Severity="Informational" IsClosable="True"
+        <InfoBar x:Name="ApplyBar" Grid.Row="3" Severity="Informational" IsClosable="True"
                  Message="Changes apply to new Explorer windows.">
             <InfoBar.ActionButton>
                 <Button x:Name="RestartButton" Content="Restart Explorer" Click="OnRestartExplorer" />
             </InfoBar.ActionButton>
         </InfoBar>
-        <InfoBar x:Name="ErrorBar" Grid.Row="2" Severity="Error" IsClosable="True" />
+        <InfoBar x:Name="ErrorBar" Grid.Row="3" Severity="Error" IsClosable="True" />
 
-        <TextBlock Grid.Row="3" x:Name="ListHeader" Text="Third-party menu entries" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
+        <TextBlock Grid.Row="4" x:Name="ListHeader" Text="Third-party menu entries" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
 
-        <ListView x:Name="EntryList" Grid.Row="4" SelectionMode="None" IsItemClickEnabled="False"
+        <ListView x:Name="EntryList" Grid.Row="5" SelectionMode="None" IsItemClickEnabled="False"
                   AutomationProperties.Name="Third-party menu entries">
             <ListView.ItemContainerStyle>
                 <Style TargetType="ListViewItem">
@@ -88,7 +111,14 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <FontIcon Glyph="{x:Bind Glyph}" FontSize="16" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <Grid Width="{x:Bind IconDip, Mode=OneWay}" Height="{x:Bind IconDip, Mode=OneWay}" VerticalAlignment="Center">
+                            <Image Source="{x:Bind IconImage, Mode=OneWay}" Stretch="Uniform"
+                                   Visibility="{x:Bind IconVisibility, Mode=OneWay}"
+                                   AutomationProperties.Name="{x:Bind Name}" />
+                            <FontIcon Glyph="{x:Bind Glyph}" FontSize="16" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                      Visibility="{x:Bind GlyphVisibility, Mode=OneWay}" />
+                        </Grid>
                         <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
                             <TextBlock Text="{x:Bind Name}" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
                             <TextBlock Text="{x:Bind Secondary}" Style="{StaticResource CaptionTextBlockStyle}"
@@ -107,7 +137,8 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-        <TextBlock x:Name="EmptyText" Grid.Row="4" Visibility="Collapsed" TextWrapping="Wrap"
+        <TextBlock x:Name="EmptyText" Grid.Row="5" Visibility="Collapsed" TextWrapping="Wrap"
                    Text="No third-party menu entries found." Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
     </Grid>
 </Window>
+

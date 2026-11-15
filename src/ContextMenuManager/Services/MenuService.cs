@@ -122,6 +122,7 @@ public sealed class MenuService
                 display = Native.LoadIndirect("@{" + full + "?" + res + "}") ?? pkgName;
             }
             var pubName = PublisherName(publisher);
+            var logo = PackageLogo(doc);
 
             foreach (var (clsid, types) in byClsid)
             {
@@ -133,6 +134,7 @@ public sealed class MenuService
                     Source = $"{pubName} · {pkgName}",
                     Scopes = string.Join(", ", types),
                     Clsid = clsid,
+                    Icon = dir is not null && logo is not null ? IconProtocol.FromPackageLogo(dir, logo) : IconSpec.None,
                 };
                 ApplyBlockState(e, hkcu, hklm);
                 yield return e;
@@ -152,7 +154,7 @@ public sealed class MenuService
 
     private IEnumerable<MenuEntry> ScanShellExtensions(HashSet<string> hkcu, HashSet<string> hklm)
     {
-        var groups = new Dictionary<string, (string name, string dll, SortedSet<string> scopes)>(StringComparer.OrdinalIgnoreCase);
+        var groups = new Dictionary<string, (string name, string dll, IconSpec icon, SortedSet<string> scopes)>(StringComparer.OrdinalIgnoreCase);
         foreach (var cls in ExtClasses)
             foreach (var hive in new[] { Registry.CurrentUser, Registry.LocalMachine })
             {
@@ -166,9 +168,9 @@ public sealed class MenuService
                     if (!groups.TryGetValue(clsid, out var g))
                     {
                         var dll = ClsidDll(clsid);
-                        if (string.IsNullOrEmpty(dll) || IsMicrosoftFile(dll)) { groups[clsid] = ("", "", new()); continue; }
+                        if (string.IsNullOrEmpty(dll) || IsMicrosoftFile(dll)) { groups[clsid] = ("", "", IconSpec.None, new()); continue; }
                         string friendly = NormGuid(name) is null ? name : (ClsidName(clsid) ?? Path.GetFileNameWithoutExtension(dll));
-                        groups[clsid] = g = (friendly, dll, new SortedSet<string>());
+                        groups[clsid] = g = (friendly, dll, ClsidIcon(clsid, dll), new SortedSet<string>());
                     }
                     g.scopes?.Add(ScopeLabel(cls));
                 }
@@ -184,6 +186,7 @@ public sealed class MenuService
                 Source = g.dll + (File.Exists(g.dll) ? "" : " (file not found)"),
                 Scopes = string.Join(", ", g.scopes),
                 Clsid = clsid,
+                Icon = g.icon.IsEmpty ? IconProtocol.FromFile(g.dll) : g.icon,
             };
             ApplyBlockState(e, hkcu, hklm);
             yield return e;
@@ -195,6 +198,26 @@ public sealed class MenuService
         using var k = Registry.ClassesRoot.OpenSubKey($@"CLSID\{clsid}\InprocServer32");
         var v = k?.GetValue("") as string;
         return string.IsNullOrWhiteSpace(v) ? null : Environment.ExpandEnvironmentVariables(v.Trim('"'));
+    }
+
+
+    private static IconSpec ClsidIcon(string clsid, string? dll)
+    {
+        using var k = Registry.ClassesRoot.OpenSubKey($@"CLSID\{clsid}\DefaultIcon");
+        var spec = IconProtocol.FromIconValue(k?.GetValue("") as string);
+        return spec.IsEmpty ? IconProtocol.FromFile(dll) : spec;
+    }
+
+    private static string? PackageLogo(XDocument doc)
+    {
+        var visual = doc.Descendants().FirstOrDefault(x => x.Name.LocalName == "VisualElements");
+        var logo = (string?)visual?.Attribute("Square44x44Logo")
+            ?? (string?)visual?.Attribute("Square150x150Logo")
+            ?? (string?)visual?.Attribute("Logo");
+        if (logo is not null) return logo;
+        var tile = doc.Descendants().FirstOrDefault(x => x.Name.LocalName == "DefaultTile");
+        return (string?)tile?.Attribute("Square44x44Logo")
+            ?? (string?)tile?.Attribute("Square150x150Logo");
     }
 
     private static string? ClsidName(string clsid)
@@ -227,6 +250,7 @@ public sealed class MenuService
     {
         public string Name = "";
         public string Source = "";
+        public IconSpec Icon = IconSpec.None;
         public SortedSet<string> Scopes = new();
         public List<VerbLocation> Locations = new();
         public bool AnyHkcuDisabled, AnyHklmDisabled;
@@ -263,7 +287,10 @@ public sealed class MenuService
 
                 var display = ResolveName(rawName) ?? verb;
                 var exe = ExeFromCommand(cmd) ?? ExeFromIcon(V("Icon"));
-                if (!acc.TryGetValue(verb, out var a)) acc[verb] = a = new VerbAcc { Name = display, Source = exe ?? $@"HKCR\{cls}\shell\{verb}" };
+                var icon = IconProtocol.FromIconValue(V("Icon"));
+                if (icon.IsEmpty) icon = IconProtocol.FromFile(exe);
+                if (!acc.TryGetValue(verb, out var a)) acc[verb] = a = new VerbAcc { Name = display, Source = exe ?? $@"HKCR\{cls}\shell\{verb}", Icon = icon };
+                if (a.Icon.IsEmpty && !icon.IsEmpty) a.Icon = icon;
                 a.Scopes.Add(ScopeLabel(cls));
                 a.Locations.Add(new VerbLocation(cls, verb, cuK is not null, lmK is not null));
                 if (cuK?.GetValue("LegacyDisable") is not null) a.AnyHkcuDisabled = true;
@@ -280,6 +307,7 @@ public sealed class MenuService
                 Source = a.Source,
                 Scopes = string.Join(", ", a.Scopes),
                 Locations = a.Locations,
+                Icon = a.Icon,
             };
             if (a.AnyHklmDisabled) e.LockedReason = "Disabled by system/admin";
             e.IsEnabled = !a.AnyHkcuDisabled && !a.AnyHklmDisabled;

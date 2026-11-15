@@ -49,6 +49,9 @@ public sealed class AppSettings
     /// <summary>"System", "Light" or "Dark".</summary>
     public string Theme { get; set; } = "System";
 
+    /// <summary>When true (the default), the app checks for a newer GitHub release at launch.</summary>
+    public bool CheckForUpdatesAtLaunch { get; set; } = true;
+
     public static AppSettings Load()
     {
         try { if (File.Exists(AppPaths.Settings)) return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(AppPaths.Settings)) ?? new(); }

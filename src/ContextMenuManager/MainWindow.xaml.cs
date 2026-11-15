@@ -21,6 +21,11 @@ public sealed partial class MainWindow : Window
     private readonly IntPtr _hwnd;
     private bool _suppressClassic;
     private bool _sized;
+    private bool _iconsStarted;
+    private int _iconPx;
+    private bool _updateDismissed;
+    private UpdateInfo? _availableUpdate;
+    private bool _updating;
 
     public MainWindow()
     {
@@ -33,12 +38,22 @@ public sealed partial class MainWindow : Window
 
         EntryList.ItemsSource = _entries;
         LoadData();
+        ShowPendingUpdateError();
 
         ApplyTheme(_settings.Theme, save: false);
-        Root.ActualThemeChanged += (_, _) => UpdateTitleBar();
+        Root.ActualThemeChanged += (_, _) => { UpdateTitleBar(); StartIconLoad(force: true); };
         _uiSettings.ColorValuesChanged += (_, _) => DispatcherQueue.TryEnqueue(UpdateTitleBar);
         AppWindow.Changed += OnAppWindowChanged;
-        Root.Loaded += (_, _) => SizeToContent();
+        Root.Loaded += OnRootLoaded;
+    }
+
+    private void OnRootLoaded(object sender, RoutedEventArgs e)
+    {
+        SizeToContent();
+        StartIconLoad();
+        StartLaunchUpdateCheck();
+        if (Root.XamlRoot is not null)
+            Root.XamlRoot.Changed += (_, _) => StartIconLoad();
     }
 
     private void LoadData()
@@ -54,6 +69,127 @@ public sealed partial class MainWindow : Window
         Log.Write($"loaded {_entries.Count} entries; classic={ClassicToggle.IsOn}");
     }
 
+    // ---------------- icons ----------------
+
+    private void StartIconLoad(bool force = false)
+    {
+        if (Root.XamlRoot is null) return;
+        double font = 14;
+        try { font = (double)Application.Current.Resources["ControlContentThemeFontSize"]; } catch { }
+        var dip = IconService.DipSize(font);
+        var px = IconService.PhysicalPixels(dip, Root.XamlRoot.RasterizationScale);
+        if (!force && _iconsStarted && px == _iconPx) return;
+        _iconsStarted = true;
+        _iconPx = px;
+        foreach (var e in _entries) e.IconDip = dip;
+
+        var scalePercent = (int)Math.Round(Root.XamlRoot.RasterizationScale * 100);
+        var dark = IsDark();
+        var snapshot = _entries.ToList();
+        _ = Task.Run(async () =>
+        {
+            var loaded = new List<(MenuEntry Entry, byte[] Pixels)>();
+            var found = new List<string>();
+            var fallback = new List<string>();
+            foreach (var entry in snapshot)
+            {
+                var pixels = IconService.LoadPixels(entry, px, dark, scalePercent);
+                if (pixels is null) fallback.Add($"{entry.Name} ({entry.Kind}, {entry.Icon.Origin})");
+                else
+                {
+                    loaded.Add((entry, pixels));
+                    found.Add($"{entry.Name} ({entry.Kind}, {entry.Icon.Origin})");
+                }
+            }
+            Log.Write($"icons: {found.Count} real, {fallback.Count} fallback; px={px} scale={scalePercent}");
+            if (found.Count > 0) Log.Write("icons real: " + string.Join("; ", found));
+            if (fallback.Count > 0) Log.Write("icons fallback: " + string.Join("; ", fallback));
+
+            foreach (var (entry, pixels) in loaded)
+            {
+                var done = new TaskCompletionSource();
+                DispatcherQueue.TryEnqueue(async () =>
+                {
+                    try { entry.SetIconImage(await IconService.ToImageSourceAsync(pixels, px)); }
+                    catch (Exception ex) { Log.Write("icon apply: " + ex.Message); }
+                    finally { done.SetResult(); }
+                });
+                await done.Task;
+            }
+        });
+    }
+
+    // ---------------- updates ----------------
+
+    private void ShowPendingUpdateError()
+    {
+        try
+        {
+            var file = Path.Combine(Path.GetDirectoryName(UpdateChecker.ResolveInstalledExe()) ?? "", "update-error.txt");
+            if (!File.Exists(file)) return;
+            var text = File.ReadAllText(file).Trim();
+            File.Delete(file);
+            if (text.Length > 0) ShowError(text);
+        }
+        catch (Exception ex) { Log.Write("update-error read: " + ex.Message); }
+    }
+
+    private void StartLaunchUpdateCheck()
+    {
+        if (!_settings.CheckForUpdatesAtLaunch) return;
+        _ = Task.Run(() =>
+        {
+            UpdateInfo info;
+            try { info = UpdateChecker.Check(); }
+            catch (Exception ex)
+            {
+                Log.Write("update check: " + UpdateProtocol.DescribeError(ex, "Update check failed"));
+                return;
+            }
+            if (!info.IsNewer) { Log.Write("update check: " + (info.Error ?? "up to date")); return; }
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                if (_updateDismissed) return;
+                _availableUpdate = info;
+                UpdateBarMessage.Text = "Version " + info.RemoteVersion + " is available.";
+                UpdateBar.Visibility = Visibility.Visible;
+            });
+        });
+    }
+
+    private void OnUpdateLater(object sender, RoutedEventArgs e)
+    {
+        _updateDismissed = true;
+        UpdateBar.Visibility = Visibility.Collapsed;
+    }
+
+    private void OnUpdateNow(object sender, RoutedEventArgs e)
+    {
+        if (_updating) return;
+        _updating = true;
+        UpdateNowButton.IsEnabled = false;
+        UpdateLaterButton.IsEnabled = false;
+        UpdateBarMessage.Text = "Downloading. The app will restart when it is ready.";
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                UpdateChecker.DownloadAndRestart();
+                DispatcherQueue.TryEnqueue(() => Application.Current.Exit());
+            }
+            catch (Exception ex)
+            {
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    _updating = false;
+                    UpdateNowButton.IsEnabled = true;
+                    UpdateLaterButton.IsEnabled = true;
+                    UpdateBarMessage.Text = UpdateProtocol.DescribeError(ex);
+                });
+            }
+        });
+    }
+
     // ---------------- sizing ----------------
 
     /// <summary>Initial size comes from the content (no fixed pixel sizes), capped by the monitor work area.</summary>
@@ -66,7 +202,7 @@ public sealed partial class MainWindow : Window
             double scale = Root.XamlRoot.RasterizationScale;
             var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Nearest).WorkArea;
             double em = (double)Application.Current.Resources["ControlContentThemeFontSize"];
-            double maxW = Math.Min(area.Width / scale * 0.9, em * 60); // a comfortable reading width
+            double maxW = Math.Min(area.Width / scale * 0.9, em * 60);
             double maxH = area.Height / scale * 0.85;
 
             Root.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
@@ -167,7 +303,7 @@ public sealed partial class MainWindow : Window
     private void OnEntryToggled(object sender, RoutedEventArgs e)
     {
         if (sender is not ToggleSwitch sw || sw.DataContext is not MenuEntry entry) return;
-        if (sw.IsOn == entry.IsEnabled) return; // binding update, not a user change
+        if (sw.IsOn == entry.IsEnabled) return;
         try
         {
             _service.SetEnabled(entry, sw.IsOn);
@@ -202,7 +338,7 @@ public sealed partial class MainWindow : Window
         _aboutOpen = true;
         try
         {
-            var dlg = new AboutDialog { XamlRoot = Root.XamlRoot, RequestedTheme = Root.ActualTheme };
+            var dlg = new AboutDialog(_settings) { XamlRoot = Root.XamlRoot, RequestedTheme = Root.ActualTheme };
             await dlg.ShowAsync();
         }
         catch (Exception ex) { Log.Write("about: " + ex); }
@@ -236,3 +372,4 @@ public sealed partial class MainWindow : Window
         finally { RestartButton.IsEnabled = true; }
     }
 }
+

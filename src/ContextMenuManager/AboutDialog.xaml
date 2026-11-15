@@ -3,9 +3,10 @@
     x:Class="ContextMenuManager.AboutDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="About Context Menu Manager"
+    PrimaryButtonText="Check for updates"
     CloseButtonText="Close"
     DefaultButton="Close"
+    PrimaryButtonClick="OnPrimaryClick"
     Opened="OnOpened">
 
     <StackPanel Spacing="16">
@@ -22,7 +23,7 @@
             </Border>
             <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
                 <TextBlock Text="Context Menu Manager" Style="{StaticResource SubtitleTextBlockStyle}" TextWrapping="Wrap" />
-                <TextBlock x:Name="VersionText" Text="Version 0.1.0" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock x:Name="VersionText" Text="Version 0.1.1" FontWeight="SemiBold" TextWrapping="Wrap" />
                 <TextBlock Margin="0,4,0,0" TextWrapping="Wrap">
                     <Hyperlink x:Name="ProjectLink" Click="OnProjectClick">GitHub project page</Hyperlink>
                 </TextBlock>
@@ -43,5 +44,19 @@
                 <Hyperlink x:Name="BackupsLink" Click="OnBackupsClick">Open backups folder</Hyperlink>
             </TextBlock>
         </StackPanel>
+
+        <CheckBox x:Name="LaunchCheckBox"
+                  Content="Check for updates at launch (recommended)"
+                  IsChecked="True"
+                  Checked="OnLaunchCheckChanged"
+                  Unchecked="OnLaunchCheckChanged" />
+
+        <TextBlock x:Name="UpdateStatus" TextWrapping="Wrap" Visibility="Collapsed"
+                   Style="{StaticResource CaptionTextBlockStyle}" />
+
+        <TextBlock x:Name="PrivacyText" TextWrapping="Wrap"
+                   Style="{StaticResource CaptionTextBlockStyle}"
+                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                   Text="Each update check sends one anonymous request to the Context Menu Manager update server. It counts only the country the request came from, for a rough guesstimate of the app’s popularity (or lack thereof) for my own curiosity. Your IP address is never stored, and no identifiers, cookies, or telemetry are used." />
     </StackPanel>
 </ContentDialog>
