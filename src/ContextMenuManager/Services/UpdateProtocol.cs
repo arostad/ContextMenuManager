@@ -14,8 +14,20 @@ public static class UpdateProtocol
     public const string WorkerHost = "contextmenumanager-update-pings.dataspike.workers.dev";
     public const string WorkerVersionUrl = "https://" + WorkerHost + "/version.txt";
     public const string GitHubVersionUrl = "https://github.com/arostad/ContextMenuManager/releases/download/latest/version.txt";
-    public const string ArtifactUrl = "https://github.com/arostad/ContextMenuManager/releases/download/latest/ContextMenuManager.zip";
+    public const string ReleaseBaseUrl = "https://github.com/arostad/ContextMenuManager/releases/download/latest/";
+    public const string ArtifactUrl = ReleaseBaseUrl + "ContextMenuManager.zip";
     public const string ChecksumUrl = ArtifactUrl + ".sha256";
+
+    // Installed mode: the per-user Inno Setup installer is the update artifact, so the files, the Apps list entry
+    // (DisplayVersion, EstimatedSize) and the uninstaller are all refreshed by the same silent run.
+    public const string SetupFileName = "ContextMenuManagerSetup.exe";
+    public const string SetupUrl = ReleaseBaseUrl + SetupFileName;
+    public const string SetupChecksumUrl = SetupUrl + ".sha256";
+
+    /// <summary>Inno Setup AppId. Must match installer\ContextMenuManager.iss. Never change it.</summary>
+    public const string AppId = "{5F37C578-C736-4332-9161-A7E9C9EC6C78}";
+    public const string UninstallSubKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\" + AppId + "_is1";
+    public const string RunningMutexName = "ContextMenuManager.Running";
 
     public static readonly HashSet<string> TrustedHosts = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -93,6 +105,25 @@ public static class UpdateProtocol
         if (relative.EndsWith(Path.DirectorySeparatorChar))
             combined = combined.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
         return combined.StartsWith(destRoot, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Installed mode means the HKCU Uninstall entry points at the folder the app runs from.
+    /// A portable copy anywhere else stays portable even when an installed copy exists.
+    /// </summary>
+    public static bool IsSameDirectory(string? a, string? b)
+    {
+        if (string.IsNullOrWhiteSpace(a) || string.IsNullOrWhiteSpace(b)) return false;
+        try
+        {
+            static string Norm(string p) => Path.GetFullPath(p.Trim().Trim('"'))
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            return string.Equals(Norm(a), Norm(b), StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
     }
 
     public static string Sha256File(string path)

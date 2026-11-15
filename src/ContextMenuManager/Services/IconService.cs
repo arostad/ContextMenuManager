@@ -178,28 +178,7 @@ public static class IconService
         return dest;
     }
 
-    private static byte[]? DecodeImageToBgra(byte[] fileBytes, int physicalPx)
-    {
-        // Use WIC via a short-lived COM factory so this stays off the UI thread and doesn't need WinUI types.
-        object? factory = null;
-        try
-        {
-            var clsid = new Guid("CACAF262-9370-4615-A13B-9F5539DA4C0A");
-            var iid = new Guid("EC5EC8A9-C395-4314-9C77-54D7A935FF70");
-            var hr = CoCreateInstance(ref clsid, IntPtr.Zero, 1, ref iid, out factory);
-            if (hr != 0 || factory is null) return DecodeWithSoftwareBitmap(fileBytes, physicalPx);
-        }
-        catch
-        {
-            return DecodeWithSoftwareBitmap(fileBytes, physicalPx);
-        }
-        finally
-        {
-            if (factory is not null) Marshal.ReleaseComObject(factory);
-        }
-        // Fall back: SoftwareBitmap decode is simpler and already referenced.
-        return DecodeWithSoftwareBitmap(fileBytes, physicalPx);
-    }
+    private static byte[]? DecodeImageToBgra(byte[] fileBytes, int physicalPx) => DecodeWithSoftwareBitmap(fileBytes, physicalPx);
 
     private static byte[]? DecodeWithSoftwareBitmap(byte[] fileBytes, int physicalPx)
     {
@@ -266,9 +245,6 @@ public static class IconService
 
     [DllImport("gdi32.dll")]
     private static extern bool DeleteObject(IntPtr ho);
-
-    [DllImport("ole32.dll")]
-    private static extern int CoCreateInstance(ref Guid clsid, IntPtr outer, uint context, ref Guid iid, [MarshalAs(UnmanagedType.IUnknown)] out object? ppv);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct ICONINFO

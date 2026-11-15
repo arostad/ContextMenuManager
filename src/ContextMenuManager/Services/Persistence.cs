@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ContextMenuManager.Services;
 
@@ -15,11 +16,9 @@ public sealed class AppState
     public List<CreatedValue> CreatedValues { get; set; } = new();
     public List<string> History { get; set; } = new();
 
-    private static readonly JsonSerializerOptions Opts = new() { WriteIndented = true };
-
     public static AppState Load()
     {
-        try { if (File.Exists(AppPaths.State)) return JsonSerializer.Deserialize<AppState>(File.ReadAllText(AppPaths.State)) ?? new(); }
+        try { if (File.Exists(AppPaths.State)) return JsonSerializer.Deserialize(File.ReadAllText(AppPaths.State), PersistenceJson.Default.AppState) ?? new(); }
         catch (Exception ex) { Log.Write("state load failed: " + ex.Message); }
         return new();
     }
@@ -28,7 +27,7 @@ public sealed class AppState
     {
         Directory.CreateDirectory(AppPaths.Root);
         var tmp = AppPaths.State + ".tmp";
-        File.WriteAllText(tmp, JsonSerializer.Serialize(this, Opts));
+        File.WriteAllText(tmp, JsonSerializer.Serialize(this, PersistenceJson.Default.AppState));
         File.Move(tmp, AppPaths.State, true);
     }
 
@@ -54,7 +53,7 @@ public sealed class AppSettings
 
     public static AppSettings Load()
     {
-        try { if (File.Exists(AppPaths.Settings)) return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(AppPaths.Settings)) ?? new(); }
+        try { if (File.Exists(AppPaths.Settings)) return JsonSerializer.Deserialize(File.ReadAllText(AppPaths.Settings), PersistenceJson.Default.AppSettings) ?? new(); }
         catch (Exception ex) { Log.Write("settings load failed: " + ex.Message); }
         return new();
     }
@@ -62,6 +61,14 @@ public sealed class AppSettings
     public void Save()
     {
         Directory.CreateDirectory(AppPaths.Root);
-        File.WriteAllText(AppPaths.Settings, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText(AppPaths.Settings, JsonSerializer.Serialize(this, PersistenceJson.Default.AppSettings));
     }
+}
+
+/// <summary>Source-generated JSON so settings and state still load in the trimmed build.</summary>
+[JsonSourceGenerationOptions(WriteIndented = true)]
+[JsonSerializable(typeof(AppState))]
+[JsonSerializable(typeof(AppSettings))]
+internal sealed partial class PersistenceJson : JsonSerializerContext
+{
 }

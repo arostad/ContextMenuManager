@@ -10,6 +10,15 @@ App created by [Andy Rostad](https://github.com/arostad).  Released under the [M
 
 ![Context Menu Manager](docs/screenshot.png)
 
+## Download
+
+- **[Installer](https://github.com/arostad/ContextMenuManager/releases/latest/download/ContextMenuManagerSetup.exe)** (`ContextMenuManagerSetup.exe`). Installs for your user account only, with no admin prompt. It adds a Start menu shortcut and an entry in Settings > Apps > Installed apps for uninstalling.
+- **[Portable](https://github.com/arostad/ContextMenuManager/releases/latest/download/ContextMenuManager.zip)** (`ContextMenuManager.zip`). Unzip it anywhere and run `ContextMenuManager.exe`. Nothing gets installed.
+
+Both versions keep themselves up to date. The app isn't code-signed yet, so Windows SmartScreen may warn you the first time you run it. Choose **More info**, then **Run anyway**.
+
+Uninstalling removes the app and its shortcuts. It keeps your backups, and entries you turned off stay off, so turn them back on before you uninstall if you want them back.
+
 ## What it does
 
 - **Classic menu by default.** One switch makes right-click open the full classic menu right away, instead of the Windows 11 menu with "Show more options" at the bottom. Switch it off to go back to the Windows 11 menu.
@@ -36,6 +45,12 @@ dotnet build -c Release -r win-x64
 ```
 
 Visual Studio isn't needed. The Windows App SDK comes from NuGet and the app builds as a self-contained, unpackaged program.
+
+To build the release files (the installer and the portable zip), install [Inno Setup 6](https://jrsoftware.org/isinfo.php) and run this from the repo root:
+
+```
+powershell -ExecutionPolicy Bypass -File build\package.ps1 -OutDir <output folder>
+```
 
 ## License
 
