@@ -4,7 +4,7 @@
 
 Turn third-party right-click menu entries on or off in Windows 11, in both the new menu and the classic menu.
 
-App carefully directed by [Andy Rostad](https://github.com/arostad).  Released under the [MIT License](https://github.com/arostad/ContextMenuManager/blob/main/LICENSE).
+App created by [Andy Rostad](https://github.com/arostad).  Released under the [MIT License](https://github.com/arostad/ContextMenuManager/blob/main/LICENSE).
 
 <br clear="all">
 
