@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="ContextMenuManager.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:m="using:ContextMenuManager.Models"
+    Title="Context Menu Manager">
+
+    <Grid x:Name="Root" Padding="24,16,24,12" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Context Menu Manager" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center" TextWrapping="Wrap" />
+            <DropDownButton x:Name="ThemeButton" Grid.Column="1" AutomationProperties.Name="Theme" ToolTipService.ToolTip="Theme">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE790;" FontSize="14" />
+                    <TextBlock x:Name="ThemeLabel" Text="Theme: System" />
+                </StackPanel>
+                <DropDownButton.Flyout>
+                    <MenuFlyout Placement="BottomEdgeAlignedRight">
+                        <RadioMenuFlyoutItem x:Name="ThemeSystem" Text="System" GroupName="Theme" Tag="System" Click="OnThemeClick" />
+                        <RadioMenuFlyoutItem x:Name="ThemeLight" Text="Light" GroupName="Theme" Tag="Light" Click="OnThemeClick" />
+                        <RadioMenuFlyoutItem x:Name="ThemeDark" Text="Dark" GroupName="Theme" Tag="Dark" Click="OnThemeClick" />
+                    </MenuFlyout>
+                </DropDownButton.Flyout>
+            </DropDownButton>
+        </Grid>
+
+        <!-- Classic menu toggle -->
+        <Grid Grid.Row="1" Padding="16,12" ColumnSpacing="16" CornerRadius="8"
+              Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center" Spacing="2">
+                <TextBlock Text="Use the classic right-click menu" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
+                <TextBlock Text="Shows the full classic menu right away instead of the Windows 11 menu with &quot;Show more options&quot;."
+                           Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch x:Name="ClassicToggle" Grid.Column="1" VerticalAlignment="Center"
+                          AutomationProperties.Name="Use the classic right-click menu" Toggled="OnClassicToggled" />
+        </Grid>
+
+        <InfoBar x:Name="ApplyBar" Grid.Row="2" Severity="Informational" IsClosable="True"
+                 Message="Changes apply to new Explorer windows.">
+            <InfoBar.ActionButton>
+                <Button x:Name="RestartButton" Content="Restart Explorer" Click="OnRestartExplorer" />
+            </InfoBar.ActionButton>
+        </InfoBar>
+        <InfoBar x:Name="ErrorBar" Grid.Row="2" Severity="Error" IsClosable="True" />
+
+        <TextBlock Grid.Row="3" x:Name="ListHeader" Text="Third-party menu entries" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
+
+        <ListView x:Name="EntryList" Grid.Row="4" SelectionMode="None" IsItemClickEnabled="False"
+                  AutomationProperties.Name="Third-party menu entries">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="Padding" Value="12,8" />
+                    <Setter Property="Margin" Value="0,2" />
+                </Style>
+            </ListView.ItemContainerStyle>
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="m:MenuEntry">
+                    <Grid ColumnSpacing="12" AutomationProperties.Name="{x:Bind Name}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <FontIcon Glyph="{x:Bind Glyph}" FontSize="16" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                            <TextBlock Text="{x:Bind Name}" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
+                            <TextBlock Text="{x:Bind Secondary}" Style="{StaticResource CaptionTextBlockStyle}"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                            <Border HorizontalAlignment="Left" Padding="6,1" Margin="0,2,0,0" CornerRadius="4"
+                                    Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                <TextBlock Text="{x:Bind WhereBadge}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
+                            </Border>
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
+                                      IsOn="{x:Bind IsEnabled, Mode=OneWay}" IsEnabled="{x:Bind CanToggle}"
+                                      OnContent="On" OffContent="{x:Bind OffText}"
+                                      AutomationProperties.Name="{x:Bind Name}" Toggled="OnEntryToggled" />
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <TextBlock x:Name="EmptyText" Grid.Row="4" Visibility="Collapsed" TextWrapping="Wrap"
+                   Text="No third-party menu entries found." Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+        <TextBlock x:Name="AboutText" Grid.Row="5" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap"
+                   Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+    </Grid>
+</Window>
