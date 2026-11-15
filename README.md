@@ -36,22 +36,6 @@ Uninstalling removes the app and its shortcuts. It keeps your backups, and entri
 
 Windows 11, x64.
 
-## Build from source
-
-Install the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), then run this from `src/ContextMenuManager`:
-
-```
-dotnet build -c Release -r win-x64
-```
-
-Visual Studio isn't needed. The Windows App SDK comes from NuGet and the app builds as a self-contained, unpackaged program.
-
-To build the release files (the installer and the portable zip), install [Inno Setup 6](https://jrsoftware.org/isinfo.php) and run this from the repo root:
-
-```
-powershell -ExecutionPolicy Bypass -File build\package.ps1 -OutDir <output folder>
-```
-
 ## License
 
 [MIT](LICENSE)
