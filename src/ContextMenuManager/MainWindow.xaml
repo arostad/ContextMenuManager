@@ -6,20 +6,20 @@
     xmlns:m="using:ContextMenuManager.Models"
     Title="Context Menu Manager">
 
-    <Grid x:Name="Root" Padding="24,16,24,12" RowSpacing="12">
+    <Grid x:Name="Root" Padding="24,16,24,16" RowSpacing="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- Header -->
         <Grid ColumnSpacing="12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <TextBlock Text="Context Menu Manager" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center" TextWrapping="Wrap" />
@@ -36,6 +36,12 @@
                     </MenuFlyout>
                 </DropDownButton.Flyout>
             </DropDownButton>
+            <Button x:Name="AboutButton" Grid.Column="2" AutomationProperties.Name="About" ToolTipService.ToolTip="About Context Menu Manager" Click="OnAboutClick">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE946;" FontSize="14" />
+                    <TextBlock Text="About" />
+                </StackPanel>
+            </Button>
         </Grid>
 
         <!-- Classic menu toggle -->
@@ -103,8 +109,5 @@
         </ListView>
         <TextBlock x:Name="EmptyText" Grid.Row="4" Visibility="Collapsed" TextWrapping="Wrap"
                    Text="No third-party menu entries found." Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-
-        <TextBlock x:Name="AboutText" Grid.Row="5" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap"
-                   Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
     </Grid>
 </Window>

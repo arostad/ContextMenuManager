@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Reflection;
 using ContextMenuManager.Models;
 using ContextMenuManager.Services;
 using Microsoft.UI.Composition.SystemBackdrops;
@@ -28,10 +27,9 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
         _hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
         AppWindow.Title = "Context Menu Manager";
+        var icon = Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico");
+        if (File.Exists(icon)) AppWindow.SetIcon(icon);
         if (MicaController.IsSupported()) SystemBackdrop = new MicaBackdrop();
-
-        var v = Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 1, 0);
-        AboutText.Text = $"Context Menu Manager {v.Major}.{v.Minor}.{v.Build}  ·  MIT License  ·  © 2026 Andy Rostad";
 
         EntryList.ItemsSource = _entries;
         LoadData();
@@ -194,6 +192,21 @@ public sealed partial class MainWindow : Window
         ApplyBar.IsOpen = false;
         ErrorBar.Message = msg;
         ErrorBar.IsOpen = true;
+    }
+
+    private bool _aboutOpen;
+
+    private async void OnAboutClick(object sender, RoutedEventArgs e)
+    {
+        if (_aboutOpen) return;
+        _aboutOpen = true;
+        try
+        {
+            var dlg = new AboutDialog { XamlRoot = Root.XamlRoot, RequestedTheme = Root.ActualTheme };
+            await dlg.ShowAsync();
+        }
+        catch (Exception ex) { Log.Write("about: " + ex); }
+        finally { _aboutOpen = false; }
     }
 
     private async void OnRestartExplorer(object sender, RoutedEventArgs e)

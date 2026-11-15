@@ -1,5 +1,22 @@
+# Build output
 bin/
 obj/
-scratch/
 *.user
 .vs/
+
+# Local test and scratch files
+scratch/
+
+# OS junk
+.DS_Store
+__MACOSX/
+._*
+Thumbs.db
+ehthumbs.db
+desktop.ini
+.Spotlight-V100
+.Trashes
+.fseventsd
+.AppleDouble
+.LSOverride
+Icon?
