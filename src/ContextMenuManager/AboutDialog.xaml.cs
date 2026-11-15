@@ -24,11 +24,13 @@ public sealed partial class AboutDialog : ContentDialog
     public AboutDialog(AppSettings settings)
     {
         _settings = settings;
+        // Suppress before InitializeComponent: the XAML checkbox would otherwise
+        // fire Checked during init and overwrite the saved launch-check setting.
+        _suppressCheck = true;
         InitializeComponent();
         VersionText.Text = "Version " + BuildInfo.Version;
         var png = Path.Combine(AppContext.BaseDirectory, "Assets", "app.png");
         if (File.Exists(png)) AppIcon.Source = new BitmapImage(new Uri(png));
-        _suppressCheck = true;
         LaunchCheckBox.IsChecked = _settings.CheckForUpdatesAtLaunch;
         _suppressCheck = false;
     }
@@ -74,6 +76,7 @@ public sealed partial class AboutDialog : ContentDialog
     /// <summary>Check for updates on the left of the footer; accent Close on the right.</summary>
     private async void OnOpened(ContentDialog sender, ContentDialogOpenedEventArgs args)
     {
+        ConstrainToWindow();
         LayoutFooterButtons();
         ApplyColors();
         if (GetTemplateChild("CloseButton") is Button close)
@@ -81,6 +84,22 @@ public sealed partial class AboutDialog : ContentDialog
             await Task.Delay(100);
             close.Focus(FocusState.Programmatic);
         }
+    }
+
+    /// <summary>
+    /// At 400% the privacy note was one line taller than the body and was
+    /// clipped by the footer. Cap the body to the window minus the footer
+    /// so it can scroll instead of being cut off.
+    /// </summary>
+    private void ConstrainToWindow()
+    {
+        if (XamlRoot is not { } root) { Log.Write("about constrain: no XamlRoot"); return; }
+        MaxHeight = Math.Max(200, root.Size.Height - 16);
+        // Footer is ~72 dip; don't take more than that or the privacy note
+        // loses a line at 400%. The window itself is capped at 92% of the work area
+        // so the last line should fit; this cap is a scroll safety net.
+        BodyScroll.MaxHeight = Math.Max(120, root.Size.Height - 72);
+        Log.Write($"about constrain: rootH={root.Size.Height:F0} dialogMax={MaxHeight:F0} bodyMax={BodyScroll.MaxHeight:F0}");
     }
 
     private void LayoutFooterButtons()

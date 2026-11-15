@@ -9,6 +9,9 @@
     PrimaryButtonClick="OnPrimaryClick"
     Opened="OnOpened">
 
+    <ScrollViewer x:Name="BodyScroll"
+                  VerticalScrollBarVisibility="Auto" VerticalScrollMode="Enabled"
+                  HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled">
     <StackPanel Spacing="16">
         <!-- Top row: icon tile, name, version, project link -->
         <Grid ColumnSpacing="16">
@@ -47,7 +50,6 @@
 
         <CheckBox x:Name="LaunchCheckBox"
                   Content="Check for updates at launch (recommended)"
-                  IsChecked="True"
                   Checked="OnLaunchCheckChanged"
                   Unchecked="OnLaunchCheckChanged" />
 
@@ -59,4 +61,5 @@
                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                    Text="Each update check sends one anonymous request to the Context Menu Manager update server. It counts only the country the request came from, for a rough guesstimate of the app’s popularity (or lack thereof) for my own curiosity. Your IP address is never stored, and no identifiers, cookies, or telemetry are used." />
     </StackPanel>
+    </ScrollViewer>
 </ContentDialog>

@@ -203,7 +203,7 @@ public sealed partial class MainWindow : Window
             var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Nearest).WorkArea;
             double em = (double)Application.Current.Resources["ControlContentThemeFontSize"];
             double maxW = Math.Min(area.Width / scale * 0.9, em * 60);
-            double maxH = area.Height / scale * 0.85;
+            double maxH = area.Height / scale * 0.92;
 
             Root.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             double w = Math.Min(Root.DesiredSize.Width, maxW);
